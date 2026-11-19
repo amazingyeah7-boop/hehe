@@ -1,0 +1,26 @@
+[Unit]
+Description=Footmop ni Kuya J vending kiosk
+After=multi-user.target systemd-udev-settle.service
+# In desktop mode the launcher waits for the user's display session.
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=__USER__
+Group=__USER__
+SupplementaryGroups=gpio video input render tty
+EnvironmentFile=-/etc/footmop/footmop.env
+ExecStart=/opt/footmop/deploy/footmop-launch.sh
+# Belt and braces: make sure the motor relay is OFF whenever we stop/crash.
+ExecStopPost=-/usr/bin/python3 /opt/footmop/deploy/relay_off.py
+Restart=always
+RestartSec=3
+# The app pings systemd every 5 s from the GUI thread; a frozen UI gets restarted.
+WatchdogSec=30
+TimeoutStartSec=60
+TimeoutStopSec=10
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

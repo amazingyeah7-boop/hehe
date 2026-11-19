@@ -1,0 +1,80 @@
+# Footmop ni Kuya J - configuration
+# Copy to /etc/footmop/config.toml (install.sh does this) and edit.
+# Every key is optional; anything left out uses the built-in default.
+# Price and stock are also editable from the admin screen (those values are
+# stored in the database and survive reboots).
+
+[machine]
+name = "Footmop ni Kuya J"
+currency = "₱"
+price_per_item = 5           # first-boot default (then edit in Admin > Price); multiple of coin.value
+max_per_transaction = 0      # 0 = no cap; customers can buy up to the stock available
+
+[timing]
+inactivity_timeout_s = 60    # idle time in Quantity/Payment before "Still there?"
+warning_countdown_s = 15     # countdown before the order is cancelled
+success_screen_s = 6
+admin_sequence = "GBGBG"     # press GREEN,BLUE,GREEN,BLUE,GREEN (Welcome/Sold out/Fault) for admin
+admin_sequence_window_s = 5  # ...within this many seconds. No long presses anywhere.
+admin_pin_idle_s = 30        # PIN screen closes itself after this long without a press
+admin_idle_timeout_s = 120
+admin_pin_lockout_s = 60
+admin_pin_max_attempts = 5
+
+[pins]                       # BCM GPIO numbers (NOT physical pin numbers)
+chip = "auto"                # Pi 5 header chip is auto-detected (pinctrl-rp1)
+button_green = 17            # physical pin 11  (screen touch-IRQ line, OK because touch is unused)
+button_blue = 27             # physical pin 13
+button_white = 22            # physical pin 15
+coin = 23                    # physical pin 16  (through an optocoupler!)
+drop_sensor = 26             # physical pin 37  (IR sensor that stops the servo; powered from 3.3 V)
+servo = 12                   # physical pin 32  (MG995 signal wire; hardware-PWM capable)
+motor_relay = -1             # only used if dispense.driver = "relay"
+coin_enable = -1             # physical pin 40 (GPIO21) if you add a coin-inhibit relay; -1 = none
+# Do NOT use GPIO 7, 8, 9, 10, 11, 24 or 25 - the 3.5" screen uses them.
+
+[buttons]
+active_low = true            # button wired between GPIO and GND (internal pull-up)
+debounce_ms = 60
+poll_interval_ms = 5
+
+[coin]
+value = 5                    # pesos per accepted coin
+pulses_per_coin = 1
+active_low = true            # optocoupler pulls the GPIO LOW during a pulse
+pulse_min_ms = 15            # tune with tools/coin_probe.py
+pulse_max_ms = 150
+min_gap_ms = 40
+burst_settle_ms = 250        # only used if pulses_per_coin > 1
+glitch_filter_us = 3000
+stuck_active_s = 2.0
+enable_active_high = true
+
+[dispense]
+driver = "servo"             # "servo" = MG995 continuous-rotation servo, "relay" = DC motor via relay
+servo_spin_us = 2000         # spin pulse width. Servo turns the WRONG way? use 1000 instead
+servo_stop_us = 1500         # neutral pulse; adjust if the continuous servo creeps while stopped
+servo_freq_hz = 50
+motor_on_ms = 5000           # MAX spin time per footmop; no IR detection by then = jam -> OUT OF SERVICE
+stop_on_drop = true          # stop the servo the moment the IR sensor sees the footmop
+drop_wait_after_ms = 300     # keep watching the sensor briefly after the servo stops
+cooldown_ms = 1000           # pause between footmops
+hard_cutoff_margin_ms = 500  # independent timer forces the servo off at motor_on_ms + this
+relay_active_high = true     # only for driver = "relay"
+sensor_enabled = true        # IR drop sensor installed
+sensor_active_low = true     # most IR modules: DO goes LOW when an object is detected
+sensor_glitch_us = 1000
+
+[admin]
+pin = "0412"                 # admin PIN (keep it in quotes so the leading 0 stays)
+
+[storage]
+db_path = "/var/lib/footmop/footmop.db"
+log_dir = "/var/log/footmop"
+
+[display]
+fullscreen = true
+hide_cursor = true
+touch_enabled = false        # buttons-only: all touch/mouse input is ignored
+window_width = 480           # only used with --windowed
+window_height = 320
